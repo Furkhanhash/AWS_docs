@@ -23,9 +23,9 @@ current_t=datetime.now(tz)
 
 dw=current_t.isoweekday()
 
-if dw==4:
+if dw==3:
     ec2_change("start",s)
-elif dw==3:
+elif dw==4:
     print("Here")
 
 
