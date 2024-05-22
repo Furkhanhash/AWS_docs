@@ -2,7 +2,7 @@ name: Deploy and Manage EC2
 
 on:
   schedule:
-    - cron: '0 12 * * 1' # Every Monday at 8 AM EST (1 PM UTC)
+    - cron: '0 13 * * 1' # Every Monday at 8 AM EST (1 PM UTC)
     - cron: '0 1 * * 6'  # Every Saturday at 9 PM EST (2 AM UTC)
 
 jobs:
