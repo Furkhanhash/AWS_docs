@@ -3,7 +3,7 @@ name: Deploy and Manage EC2
 on:
 
    schedule:
-      - cron: '57 13 * * 2'
+      - cron: '0 14 * * 2'
    workflow_dispatch:
 
 jobs:
