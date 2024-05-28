@@ -3,7 +3,7 @@ name: Deploy and Manage EC2 2
 on:
 
    schedule:
-      - cron: '* * * * 2'
+      - cron: '18 * * * 2'
    workflow_dispatch:
 
 jobs:
