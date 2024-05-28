@@ -5,7 +5,7 @@ from pytz import timezone
 
 def ec2_change(status,ids):
     if status=="start":
-        response=ec2.start_instances(InstanceIds=[s])
+        response=ec2.stop_instances(InstanceIds=[s])
         print(response)
 
 
@@ -23,7 +23,7 @@ current_t=datetime.now(tz)
 
 dw=current_t.isoweekday()
 
-if dw==3:
+if dw==2:
     ec2_change("start",s)
 elif dw==4:
     print("Here")
