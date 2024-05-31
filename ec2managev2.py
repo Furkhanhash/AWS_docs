@@ -1,5 +1,4 @@
 import boto3
-import os
 import logging
 from datetime import datetime
 from pytz import timezone
@@ -8,32 +7,18 @@ from pytz import timezone
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger()
 
-# Function to assume OIDC role and get temporary credentials
-def assume_oidc_role(role_arn):
-    sts_client = boto3.client('sts')
-    response = sts_client.assume_role(
-        RoleArn=role_arn,
-        RoleSessionName='OIDCSession'
-    )
-    credentials = response['Credentials']
-    return credentials
+# Hardcoded AWS credentials (not recommended for production)
+AWS_ACCESS_KEY_ID = 'your_access_key_id'
+AWS_SECRET_ACCESS_KEY = 'your_secret_access_key'
+AWS_SESSION_TOKEN = 'your_session_token'  # Optional if you have a session token
 
-# Function to initialize EC2 client with temporary credentials
-def get_ec2_client_with_role(role_arn):
-    credentials = assume_oidc_role(role_arn)
-    ec2_client = boto3.client(
-        'ec2',
-        aws_access_key_id=credentials['AccessKeyId'],
-        aws_secret_access_key=credentials['SecretAccessKey'],
-        aws_session_token=credentials['SessionToken']
-    )
-    return ec2_client
-
-# Get the role ARN from environment variable
-role_arn = os.getenv('OIDC_ROLE_ARN')
-
-# Initialize the EC2 client with assumed role
-ec2 = get_ec2_client_with_role(role_arn)
+# Initialize the EC2 client with hardcoded credentials
+ec2 = boto3.client(
+    'ec2',
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    aws_session_token=AWS_SESSION_TOKEN  # Optional if you have a session token
+)
 
 def get_ec2_instances(tag_key, tag_value):
     """
@@ -69,8 +54,8 @@ def manage_instances():
     """
     Manage EC2 instances based on the schedule.
     """
-    tag_key = os.getenv('TAG_KEY', 'Schedule')
-    tag_value = os.getenv('TAG_VALUE', 'On')
+    tag_key = 'Schedule'
+    tag_value = 'On'
 
     instance_ids = get_ec2_instances(tag_key, tag_value)
     print(instance_ids)
