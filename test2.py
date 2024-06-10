@@ -7,22 +7,34 @@ from pytz import timezone
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger()
 
-# Hardcoded AWS credentials (not recommended for production)
-AWS_ACCESS_KEY_ID = 'your_access_key_id'
-AWS_SECRET_ACCESS_KEY = 'your_secret_access_key'
-AWS_SESSION_TOKEN = 'your_session_token'  # Optional if you have a session token
+# Initialize the STS client for assuming roles
+sts_client = boto3.client('sts')
 
-def get_client(service, region_name):
+def assume_role(account_id, role_name):
     """
-    Initialize a boto3 client with hardcoded credentials for a specific service and region.
+    Assume a role in the specified account and return the temporary credentials.
     """
-    return boto3.client(
-        service,
-        region_name=region_name,
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        aws_session_token=AWS_SESSION_TOKEN  # Optional if you have a session token
+    role_arn = f'arn:aws:iam::{account_id}:role/{role_name}'
+    response = sts_client.assume_role(
+        RoleArn=role_arn,
+        RoleSessionName='InstanceSchedulerSession'
     )
+    return response['Credentials']
+
+def get_client(service, region_name, credentials=None):
+    """
+    Initialize a boto3 client with optional assumed role credentials for a specific service and region.
+    """
+    if credentials:
+        return boto3.client(
+            service,
+            region_name=region_name,
+            aws_access_key_id=credentials['AccessKeyId'],
+            aws_secret_access_key=credentials['SecretAccessKey'],
+            aws_session_token=credentials['SessionToken']
+        )
+    else:
+        return boto3.client(service, region_name=region_name)
 
 def get_ec2_instances(ec2_client, tag_key, tag_value):
     """
@@ -87,34 +99,33 @@ def stop_rds_cluster(rds_client, cluster_id):
     except Exception as e:
         logger.error(f"Error stopping RDS cluster {cluster_id}: {e}")
 
-def manage_instances():
+def manage_instances(account_id, role_name, regions):
     """
-    Manage EC2 and RDS instances based on the schedule.
+    Manage EC2 and RDS instances in the specified account and regions based on the schedule.
     """
-    tag_key = 'Schedule'
-    tag_value = 'On'
-    regions = ['us-east-1', 'us-west-1', 'us-west-2']  # Add the regions you want to check
+    # Assume role in the member account
+    credentials = assume_role(account_id, role_name)
 
     all_ec2_instances = []
     all_rds_clusters = []
     for region in regions:
-        ec2_client = get_client('ec2', region)
-        rds_client = get_client('rds', region)
+        ec2_client = get_client('ec2', region, credentials)
+        rds_client = get_client('rds', region, credentials)
         
         logger.info(f"Checking EC2 instances in region: {region}")
-        ec2_instances = get_ec2_instances(ec2_client, tag_key, tag_value)
+        ec2_instances = get_ec2_instances(ec2_client, 'Schedule', 'On')
         logger.info(f"EC2 instances in {region}: {ec2_instances}")
         all_ec2_instances.extend(ec2_instances)
         
         logger.info(f"Checking RDS clusters in region: {region}")
-        rds_clusters = get_rds_clusters(rds_client, tag_key, tag_value)
+        rds_clusters = get_rds_clusters(rds_client, 'Schedule', 'On')
         logger.info(f"RDS clusters in {region}: {rds_clusters}")
         all_rds_clusters.extend(rds_clusters)
 
     logger.info(f"All EC2 instances: {all_ec2_instances}")
     logger.info(f"All RDS clusters: {all_rds_clusters}")
     if not all_ec2_instances and not all_rds_clusters:
-        logger.info(f'No instances or clusters found with tag {tag_key}={tag_value}.')
+        logger.info(f'No instances or clusters found with tag Schedule=On.')
         return
 
     # Determine the action based on the current day
@@ -126,14 +137,14 @@ def manage_instances():
 
     # Start or stop instances based on the determined action
     for instance_id, region, state in all_ec2_instances:
-        ec2_client = get_client('ec2', region)
+        ec2_client = get_client('ec2', region, credentials)
         if action == 'start' and state == 'stopped':
             start_ec2_instances(ec2_client, [instance_id])
         elif action == 'stop' and state == 'running':
             stop_ec2_instances(ec2_client, [instance_id])
 
     for cluster_id, region, status in all_rds_clusters:
-        rds_client = get_client('rds', region)
+        rds_client = get_client('rds', region, credentials)
         if action == 'start' and status == 'stopped':
             start_rds_cluster(rds_client, cluster_id)
         elif action == 'stop' and status == 'available':
@@ -143,4 +154,10 @@ def manage_instances():
     logger.info(f'Successfully performed {action} action on RDS clusters: {all_rds_clusters}')
 
 if __name__ == "__main__":
-    manage_instances()
+    # List of member account IDs, the role name to assume, and regions
+    accounts = ['123456789012', '234567890123']  # Replace with actual account IDs
+    role_name = 'EC2SchedulerRole'  # Replace with the actual role name
+    regions = ['us-east-1', 'us-west-1', 'us-west-2']  # Replace with desired regions
+
+    for account_id in accounts:
+        manage_instances(account_id, role_name, regions)
