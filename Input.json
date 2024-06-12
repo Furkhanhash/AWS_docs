@@ -1,0 +1,5 @@
+{
+  "days": [1, 2, 3, 4, 5],  // Monday to Friday
+  "stop_time": "08:00", // Time in HH:MM format (24-hour) to stop instances
+  "start_time": "18:00"  // Time in HH:MM format (24-hour) to start instances
+}
