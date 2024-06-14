@@ -1,5 +1,14 @@
 {
-  "days": [1, 2, 3, 4, 5],  // Monday to Friday
-  "stop_time": "08:00", // Time in HH:MM format (24-hour) to stop instances
-  "start_time": "18:00"  // Time in HH:MM format (24-hour) to start instances
+  "office_hours": {
+    "start_days": [1, 2, 3, 4, 5],  // Monday to Friday for starting instances
+    "stop_days": [1, 2, 3, 4, 5],   // Monday to Friday for stopping instances
+    "stop_time": "08:00", // Time in HH:MM format (24-hour) to stop instances
+    "start_time": "18:00" // Time in HH:MM format (24-hour) to start instances
+  },
+  "another_schedule": {
+    "start_days": [6, 7],  // Saturday and Sunday for starting instances
+    "stop_days": [6, 7],   // Saturday and Sunday for stopping instances
+    "stop_time": "09:00", // Time in HH:MM format (24-hour) to stop instances
+    "start_time": "20:00" // Time in HH:MM format (24-hour) to start instances
+  }
 }
