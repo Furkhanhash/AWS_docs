@@ -9,6 +9,21 @@ from rds_management import get_rds_clusters_with_schedule_tag, get_rds_instances
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger()
 
+def should_perform_action(plan_name, current_time, schedule_data):
+    schedule = schedule_data[plan_name]
+    tz = timezone(schedule['timezone'])
+    current_time = current_time.astimezone(tz)
+    start_time = time.fromisoformat(schedule['start_time'])
+    stop_time = time.fromisoformat(schedule['stop_time'])
+    
+    if current_time.weekday() + 1 in schedule['start_days']:
+        if start_time <= current_time.time() < stop_time:
+            return 'start'
+    if current_time.weekday() + 1 in schedule['stop_days']:
+        if stop_time <= current_time.time() or current_time.time() < start_time:
+            return 'stop'
+    return None
+
 def manage_instances(scan_ec2, scan_rds):
     schedule_data = load_schedule('schedule.json')
     tag_key = 'schedule'
@@ -51,20 +66,6 @@ def manage_instances(scan_ec2, scan_rds):
 
     now = datetime.now(timezone('UTC'))
 
-    def should_perform_action(plan_name, current_time, schedule_data):
-        schedule = schedule_data[plan_name]
-        tz = timezone(schedule['timezone'])
-        current_time = current_time.astimezone(tz)
-        start_time = time.fromisoformat(schedule['start_time'])
-        stop_time = time.fromisoformat(schedule['stop_time'])
-        if current_time.weekday() + 1 in schedule['start_days']:
-            if start_time <= current_time.time() < stop_time:
-                return 'start'
-        if current_time.weekday() + 1 in schedule['stop_days']:
-            if stop_time <= current_time.time() or current_time.time() < start_time:
-                return 'stop'
-        return None
-
     for instance_id, region, plan_name, state in all_ec2_instances:
         action = should_perform_action(plan_name, now, schedule_data)
         ec2_client = get_client('ec2', region)
@@ -103,43 +104,3 @@ if __name__ == "__main__":
         scan_ec2 = scan_rds = True
 
     manage_instances(scan_ec2, scan_rds)
-    ```
-
-### GitHub Actions Workflow
-
-Set up the GitHub Actions workflow to run the script at regular intervals (e.g., every 10 minutes). The script will then decide if any actions are needed based on the current time and `schedule.json`.
-
-### Example Workflow
-
-```yaml
-name: Run AWS Management Script
-
-on:
-  schedule:
-    - cron: '*/10 * * * *'  # Runs every 10 minutes
-
-jobs:
-  run-script:
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: Run AWS Management Script
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: us-east-1
-      run: |
-        python manage_instances.py
