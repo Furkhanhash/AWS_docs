@@ -1,33 +1,31 @@
-name: "Halt for Approval"
+name: "Pause and Approve Pipeline"
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - main
 
 jobs:
   check_issues:
     runs-on: ubuntu-latest
     steps:
       - name: Check for High/Critical Issues
-        id: detect
         run: |
-          # Simulate detection of critical issues
-          echo "High/Critical issues detected."
-          exit 1  # Exit on failure
+          echo "Checking for high/critical issues..."
+          # Simulate detection of issues
+          exit 1  # Fail if issues are detected
 
-  approval:
+  manual_approval:
     runs-on: ubuntu-latest
     needs: check_issues
-    if: failure()  # Runs only if check_issues fails
+    if: failure()  # Only run if check_issues fails
     steps:
       - name: Await Manual Approval
-        uses: hmarr/auto-approve-action@v2
-        with:
-          approver: Furkhanhash
-          reason: "High/Critical issues detected. Please review and approve."
+        run: echo "High/critical issues detected. Please approve to continue."
 
   deploy:
     runs-on: ubuntu-latest
-    needs: approval
+    needs: manual_approval
     steps:
-      - name: Deploy
+      - name: Deploy Application
         run: echo "Deploying application..."
