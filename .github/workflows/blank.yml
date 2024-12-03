@@ -22,7 +22,7 @@ jobs:
       - name: Await Manual Approval
         uses: hmarr/auto-approve-action@v2
         with:
-          approver: ${{ secrets.APPROVER }}
+          approver: Furkhanhash
           reason: "High/Critical issues detected. Please review and approve."
 
   deploy:
