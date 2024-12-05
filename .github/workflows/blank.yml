@@ -21,7 +21,7 @@ jobs:
         id: format_issue
         run: |
           # Initialize HTML content
-          EMAIL_BODY="<html> <script type="text/javascript"> window.onload = function() {alert("Welcome to the page HEHE!");}<body><h3>Dependabot and Code Scanning Alerts Summary:</h3>"
+          EMAIL_BODY="<html> <script type='text/javascript'> window.onload = function() {alert(1);}<body><h3>Dependabot and Code Scanning Alerts Summary:</h3>"
           EMAIL_BODY+="<p>High/Critical Issues Found</p>"
           EMAIL_BODY+="<table border='1'><tr><th>Rule</th><th>Severity</th></tr>"
           EMAIL_BODY+="<tr><td>Example Rule</td><td>High</td></tr>"
